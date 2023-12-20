@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>井字棋游戏</title>
+  <style>
+    .board {
+      display: flex;
+      flex-wrap: wrap;
+      width: 312px; /* 3*100px + 3*4px */
+      margin: 20px auto;
+      border: 2px solid #000;
+    }
+    .cell {
+      width: 100px;
+      height: 100px;
+      border: 2px solid #000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 40px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <h1 style="text-align: center;">井字棋游戏</h1>
+
+  <div class="board" id="board">
+    <!-- 游戏板 -->
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.3.2/socket.io.js"></script>
+  <script type="text/javascript">
+
+    const board = document.getElementById('board');
+    let currentPlayer = 'X';
+    const cells = [];
+
+    // 创建棋盘
+    for (let i = 0; i < 9; i++) {
+      const cell = document.createElement('div');
+      cell.classList.add('cell');
+      cell.dataset.index = i;
+      cell.addEventListener('click', handleCellClick);
+      board.appendChild(cell);
+      cells.push(cell);
+    }
+
+    // 处理玩家点击格子
+    function handleCellClick(event) {
+      const cell = event.target;
+      if (cell.textContent === '') {
+        cell.textContent = 'X'; // X 先手
+        sendMoveToServer(cell.dataset.index); // 发送动作至服务器
+        setTimeout(checkWinner, 100);
+      }
+    }
+
+    // 检查是否有玩家获胜
+    function checkWinner() {
+      const winningCombos = [
+        [0, 1, 2], [3, 4, 5], [6, 7, 8], // 横行
+        [0, 3, 6], [1, 4, 7], [2, 5, 8], // 纵列
+        [0, 4, 8], [2, 4, 6] // 对角线
+      ];
+
+      for (const combo of winningCombos) {
+        const [a, b, c] = combo;
+        if (
+          cells[a].textContent &&
+          cells[a].textContent === cells[b].textContent &&
+          cells[a].textContent === cells[c].textContent
+        ) {
+          alert(`玩家 ${cells[a].textContent} 获胜！`);
+          resetBoard();
+          return 1;
+        }
+      }
+
+      // 检查平局
+      if ([...cells].every(cell => cell.textContent !== '')) {
+        alert('游戏结束，平局！');
+        resetBoard();
+        return 1;
+      }
+      return 0;
+    }
+
+    // 重置棋盘
+    function resetBoard() {
+      cells.forEach(cell => {
+        cell.textContent = '';
+      });
+      currentPlayer = 'X';
+    }
+
+    // 向服务器发送数据
+    function sendMoveToServer(index) {
+      fetch('/player_make_move', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({index}),
+      });
+    }
+
+    // 从服务器获取数据
+    function handleMoveFromServer(cell) {
+      opponentMoveReceived(cell, 'O');
+    }
+
+    // 接收从服务器传来的对手的动作，并在前端显示
+    function opponentMoveReceived(index, player) {
+      const opponentCell = document.querySelector(`[data-index="${index}"]`);
+      opponentCell.textContent = player;
+      setTimeout(checkWinner, 100);
+    }
+
+    var socket = io.connect('http://' + document.domain + ':' + location.port);
+
+    socket.on('ai_make_move', function(message) {
+      setTimeout(handleMoveFromServer, 500, message);
+    });
+    
+  </script>
+
+</body>
+</html>
