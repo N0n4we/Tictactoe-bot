@@ -115,7 +115,7 @@ class Classifier(nn.Module):
 
 
 batch_size = 64
-_dataset_dir = "C:\\Users\\53250\\PycharmProjects\\pythonProject3\\DATA"
+_dataset_dir = ".\DATA"
 # Construct datasets.
 # The argument "loader" tells how torchvision reads the data.
 train_set = FoodDataset(os.path.join(_dataset_dir,"training"), tfm=train_tfm)
